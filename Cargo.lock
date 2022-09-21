@@ -307,6 +307,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1df8c4ec4b0627e53bdf214615ad287367e482558cf84b109250b37464dc03ae"
 
 [[package]]
+name = "ppi"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "dirs",
+ "git2",
+ "rlua",
+ "serde",
+ "toml",
+]
+
+[[package]]
 name = "proc-macro-error"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -337,18 +349,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a2ca2c61bc9f3d74d2886294ab7b9853abd9c1ad903a3ac7815c58989bb7bab"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "project_init"
-version = "0.1.0"
-dependencies = [
- "clap",
- "dirs",
- "git2",
- "rlua",
- "serde",
- "toml",
 ]
 
 [[package]]

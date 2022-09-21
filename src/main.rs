@@ -22,7 +22,7 @@ pub fn main() {
         let mut buf = String::new();
         let _ = std::fs::File::open(
             {let mut n = dirs::config_dir().expect("no config dir so edit the source code to make it work buddy");
-                n.push("pag-project-init/config.toml");
+                n.push(clap::crate_name!().to_owned() + "/config.toml");
                 n
             }).expect("error opening file").read_to_string(&mut buf);
         buf
@@ -34,7 +34,7 @@ pub fn main() {
     {
         let scripts = scripts.keys().map(String::clone).collect::<HashSet<String>>();
         let skeletons = skeletons.keys().map(String::clone).collect::<HashSet<String>>();
-        if scripts.union(&skeletons).count() > 0 {
+        if scripts.intersection(&skeletons).count() > 0 {
             panic!("Overlap between skeletons and scripts");
         }
     }
