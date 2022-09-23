@@ -1,0 +1,5 @@
+[subcommands.skeletons]
+
+[subcommands.scripts]
+rs = "cargo-quick"
+js = "npm-quick"
