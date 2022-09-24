@@ -6,13 +6,14 @@ extern crate git2;
 use std::{path::{PathBuf, Path}, io::{Read, Cursor}, collections::{HashMap, HashSet}, ffi::OsStr};
 
 use clap::{Command, Arg};
+use git2::build::CheckoutBuilder;
 use serde::{Serialize, Deserialize};
 
 
 #[derive(Serialize, Deserialize,Default)]
 struct Subcommands{
     //a hashmap of subcommands which can be created via cloning a skeleton repository
-    skeletons:HashMap<String, String>,
+    skeletons:HashMap<String, (String, String)>,
     // a hashmap of subcommands which can be created via running an external executable
     scripts: HashMap<String,PathBuf>
 }
@@ -80,21 +81,31 @@ fn main() -> Result<(),Errors> {
     }
     program.build();
     let matches = program.get_matches();
-    for skelly in skeletons {
-        if let Some(sub) = matches.subcommand_matches(skelly.0){
+    for (skelly_name, (skelly_src, skelly_branch)) in skeletons {
+        if let Some(sub) = matches.subcommand_matches(skelly_name){
             match sub.get_one::<String>("output_dir"){
                 Some(loc)=>{
-                    let repo = match git2::Repository::clone(skelly.1.as_ref(), loc){
+                    let repo = match git2::Repository::clone(skelly_src.as_ref(), loc){
                         Ok(repo)=>{
                             repo
                         }
                         Err(_)=>{
                             eprintln!("libgit2 failed clone falling back to cli");
-                            cli_fallback(skelly.1,loc)?;
+                            cli_fallback(skelly_src,loc)?;
                             git2::Repository::open(loc)?
                         }
                     };
                     repo.remote_delete("origin")?;
+                    //Some(&(repo.annotated_commit_from_fetchhead(&skelly_branch, &skelly_src, repo.head()?.target().ok_or())?))
+                    eprintln!("Walking");
+                    let mut walk = repo.revwalk()?;
+                    walk.set_sorting(git2::Sort::TIME)?;
+                    walk.push_head()?;
+
+                    let oldest_commit = repo.find_commit(walk.last().ok_or(Errors::GitErr(git2::Error::from_str("No Oldest commit")))??)?;
+                    repo.reset(oldest_commit.as_object(), git2::ResetType::Soft, None)?;
+
+                    oldest_commit.amend(None, None, None, None, None, Some(&repo.find_tree(repo.index()?.write_tree()?)?))?;
                     return Ok(())
                 }
                 None=>{
@@ -103,7 +114,7 @@ fn main() -> Result<(),Errors> {
                 }
             }
         }
-    }
+    } 
     for script in scripts {
         if let Some(sub) = matches.subcommand_matches(script.0){
             std::process::exit(std::process::Command::new(script.1).args(sub.get_many::<String>("script_args").map(Iterator::collect).unwrap_or(Vec::new())).spawn()?.wait()?.code().ok_or(Errors::Unknown)?);
