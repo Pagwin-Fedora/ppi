@@ -6,7 +6,7 @@ extern crate git2;
 use std::{path::{PathBuf, Path}, io::{Read, Cursor}, collections::{HashMap, HashSet}, ffi::OsStr};
 
 use clap::{Command, Arg};
-use git2::build::CheckoutBuilder;
+use git2::{build::CheckoutBuilder, IndexAddOption};
 use serde::{Serialize, Deserialize};
 
 
@@ -82,9 +82,11 @@ fn main() -> Result<(),Errors> {
     program.build();
     let matches = program.get_matches();
     for (skelly_name, (skelly_src, skelly_branch)) in skeletons {
-        if let Some(sub) = matches.subcommand_matches(skelly_name){
+        if let Some(sub) = matches.subcommand_matches(&skelly_name){
             match sub.get_one::<String>("output_dir"){
                 Some(loc)=>{
+
+                    //cloning the repo
                     let repo = match git2::Repository::clone(skelly_src.as_ref(), loc){
                         Ok(repo)=>{
                             repo
@@ -95,17 +97,84 @@ fn main() -> Result<(),Errors> {
                             git2::Repository::open(loc)?
                         }
                     };
+                    #[cfg(debug_assertions)]
+                    {
+                        eprintln!("repo cloned");
+                        std::io::stdin().read_line(&mut String::new())?;
+                    }
+
+
+
+                    let branch = repo.branches(Some(git2::BranchType::Remote))?.find(|branch|{
+                        if let Ok(branch) = branch{
+                            if let Ok(Some(name)) = branch.0.name(){
+                                name == format!("origin/{}",skelly_branch)
+                            }else{false}
+                        }else{false}
+                    }).ok_or(git2::Error::from_str(format!("no branch with name {}",skelly_branch).as_str()))??;
+
+                    match repo.set_head(branch.0.into_reference().name().ok_or(git2::Error::from_str("the branch with a name somehow has a reference without a name"))?){
+                        Err(e)=>{
+                            panic!("{}",e.message());
+                        }
+                        _=>{}
+                    }
+
+                    #[cfg(debug_assertions)]
+                    {
+                        eprintln!("head set");
+                        std::io::stdin().read_line(&mut String::new())?;
+                    }
+
                     repo.remote_delete("origin")?;
-                    //Some(&(repo.annotated_commit_from_fetchhead(&skelly_branch, &skelly_src, repo.head()?.target().ok_or())?))
-                    eprintln!("Walking");
+
+                    #[cfg(debug_assertions)]
+                    {
+                        eprintln!("origin deleted");
+                        std::io::stdin().read_line(&mut String::new())?;
+                    }
+
+
+
                     let mut walk = repo.revwalk()?;
                     walk.set_sorting(git2::Sort::TIME)?;
                     walk.push_head()?;
-
                     let oldest_commit = repo.find_commit(walk.last().ok_or(Errors::GitErr(git2::Error::from_str("No Oldest commit")))??)?;
-                    repo.reset(oldest_commit.as_object(), git2::ResetType::Soft, None)?;
 
-                    oldest_commit.amend(None, None, None, None, None, Some(&repo.find_tree(repo.index()?.write_tree()?)?))?;
+                    #[cfg(debug_assertions)]
+                    {
+                        eprintln!("oldest commit found and head checked");
+                        std::io::stdin().read_line(&mut String::new())?;
+                    }
+
+                    repo.reset(oldest_commit.as_object(), git2::ResetType::Soft, None)?;
+                    
+
+                    //repo.cherrypick(&head, None)?;
+                    #[cfg(debug_assertions)]
+                    {
+                        eprintln!("repo reset");
+                        std::io::stdin().read_line(&mut String::new())?;
+                    }
+
+
+                    let mut index = repo.index()?;
+                    index.add_all(["**"], IndexAddOption::DEFAULT, None)?;
+                    let tree = repo.find_tree(index.write_tree()?)?;
+                    repo.set_index(&mut index)?;
+                    #[cfg(debug_assertions)]
+                    {
+                        eprintln!("index set");
+                        std::io::stdin().read_line(&mut String::new())?;
+                    }
+                    
+                    oldest_commit.amend(None, None, None, None, Some(format!("Initialized repo from {} skeleton", skelly_name).as_str()), Some(&tree))?;
+
+                    #[cfg(debug_assertions)]
+                    {
+                        eprintln!("commit ammended");
+                        std::io::stdin().read_line(&mut String::new())?;
+                    }
                     return Ok(())
                 }
                 None=>{
