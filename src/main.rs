@@ -135,24 +135,27 @@ fn main() -> Result<(),Errors> {
 
 
 
-                    //let mut walk = repo.revwalk()?;
-                    //walk.set_sorting(git2::Sort::TIME)?;
-                    //walk.push_head()?;
+                    let mut walk = repo.revwalk()?;
+                    walk.set_sorting(git2::Sort::TIME)?;
+                    walk.push_head()?;
                     //let head = walk.next().ok_or(git2::Error::from_str("no head"))?.map(|oid|repo.find_commit(oid))??;
-                    //let oldest_commit = repo.find_commit(walk.last().ok_or(git2::Error::from_str("No Oldest commit"))??)?;
+                    let oldest_commit = repo.find_commit(walk.last().ok_or(git2::Error::from_str("No Oldest commit"))??)?;
                     //
-                    //#[cfg(debug_assertions)]
-                    //{
-                    //    eprintln!("oldest commit found and head checked");
-                    //    std::io::stdin().read_line(&mut String::new())?;
-                    //}
-                    
-
-                    eprintln!("rebasing skeleton's commits down into single commit");
+                    #[cfg(debug_assertions)]
+                    {
+                        eprintln!("oldest commit found");
+                        std::io::stdin().read_line(&mut String::new())?;
+                    }
+                    let pwd = repo.path().parent().expect("very bad cloning into the root dir happening");
+                    eprintln!("rebasing skeleton's commits down into single commit {:?}", pwd);
                     // I give up git2 documentation/api is just too bad for me to do this
+                    std::process::Command::new("git")
+                        .current_dir(pwd)
+                        .args(["reset", "--mixed" , oldest_commit.id().as_bytes().iter().map(|byte|format!("{:x}",byte)).collect::<String>().chars().take(7).collect::<String>().as_str()])
+                        .status()?;
                     std::process::exit(std::process::Command::new("git")
-                        .current_dir(repo.path())
-                        .args(["rebase", "-i" , "--root" , skelly_branch.as_str()])
+                        .current_dir(pwd)
+                        .args(["commit", "--amend",  "-am", format!("").as_str(), oldest_commit.id().as_bytes().iter().map(|byte|format!("{:x}",byte)).collect::<String>().chars().take(7).collect::<String>().as_str()])
                         .status()?.code().ok_or(Errors::Unknown)?);
                 }
                 None=>{
