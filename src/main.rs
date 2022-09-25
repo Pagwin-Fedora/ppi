@@ -68,16 +68,7 @@ fn main() -> Result<(),Errors> {
         .author(clap::crate_authors!())
         .subcommands(skeletons.keys().map(|v|Command::new(v).arg(Arg::new("output_dir").takes_value(true).action(clap::ArgAction::Append))))
         .subcommands(scripts.keys().map(|v|Command::new(v).arg(Arg::new("script_args").takes_value(true))));
-    let mut short_help = String::new();
-    let mut long_help = String::new();
-    {
-        let mut short_help_buf = Vec::new();
-        let mut long_help_buf = Vec::new();
-        program.write_help(&mut Cursor::new(&mut short_help_buf))?;
-        program.write_help(&mut Cursor::new(&mut long_help_buf))?;
-        short_help_buf.as_slice().read_to_string(&mut short_help)?;
-        long_help_buf.as_slice().read_to_string(&mut long_help)?;
-    }
+    let mut prog_copy = program.clone();
     program.build();
     let matches = program.get_matches();
     for (skelly_name, (skelly_src, skelly_branch)) in skeletons {
@@ -177,7 +168,7 @@ fn main() -> Result<(),Errors> {
             std::process::exit(std::process::Command::new(script.1).args(sub.get_many::<String>("script_args").map(Iterator::collect).unwrap_or(Vec::new())).spawn()?.wait()?.code().ok_or(Errors::Unknown)?);
         }
     }
-    println!("{}", short_help);
+    prog_copy.print_help()?;
     Ok(())
 }
 #[derive(Debug)]
