@@ -102,8 +102,9 @@ fn main() -> Result<(),Errors> {
                         std::io::stdin().read_line(&mut String::new())?;
                     }
 
-
-
+                    eprintln!("checking out appropriate branch");
+                    handle_process(std::process::Command::new("git")
+                        .args(["checkout", skelly_branch.as_str()]))?;
                     // let branch = repo.branches(Some(git2::BranchType::Remote))?.find(|branch|{
                     //     if let Ok(branch) = branch{
                     //         if let Ok(Some(name)) = branch.0.name(){
@@ -148,15 +149,21 @@ fn main() -> Result<(),Errors> {
                     }
                     let pwd = repo.path().parent().expect("very bad cloning into the root dir happening");
                     eprintln!("rebasing skeleton's commits down into single commit {:?}", pwd);
-                    // I give up git2 documentation/api is just too bad for me to do this
-                    std::process::Command::new("git")
+                    // I give up git2 documentation/api is just too bad for me to do this with it
+                    
+
+                    handle_process(std::process::Command::new("git")
                         .current_dir(pwd)
-                        .args(["reset", "--mixed" , oldest_commit.id().as_bytes().iter().map(|byte|format!("{:x}",byte)).collect::<String>().chars().take(7).collect::<String>().as_str()])
-                        .status()?;
-                    std::process::exit(std::process::Command::new("git")
+                        .args(["reset", "--mixed" , oldest_commit.id().as_bytes().iter().map(|byte|format!("{:x}",byte)).collect::<String>().chars().take(7).collect::<String>().as_str()]))?;
+
+                    handle_process(std::process::Command::new("git")
                         .current_dir(pwd)
-                        .args(["commit", "--amend",  "-am", format!("").as_str(), oldest_commit.id().as_bytes().iter().map(|byte|format!("{:x}",byte)).collect::<String>().chars().take(7).collect::<String>().as_str()])
-                        .status()?.code().ok_or(Errors::Unknown)?);
+                        .args(["add", "--all"]))?;
+
+                    handle_process(std::process::Command::new("git")
+                        .current_dir(pwd)
+                        .args(["commit", "--amend",  "-am", format!("initialized from {} skeleton", skelly_name).as_str()]))?;
+                    std::process::exit(0)
                 }
                 None=>{
                     eprintln!("failed to provide a path to clone the skeleton directory into");
@@ -187,7 +194,11 @@ fn cli_fallback<S:AsRef<OsStr>, P:AsRef<Path>>(source:S, dest: P)->Result<(),Cli
         .arg("clone")
         .arg(source)
         .arg(dest.as_ref());
-    if !child.spawn()?.wait()?.success() {
+    handle_process(&mut child)
+}
+
+fn handle_process<'proc,P:Into<&'proc mut std::process::Command>>(cmd:P) -> Result<(),CliError>{
+    if !cmd.into().status()?.success() {
         Err(CliError::NonZero)
     }
     else{
