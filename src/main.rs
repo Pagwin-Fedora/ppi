@@ -94,6 +94,7 @@ fn main() -> Result<(),Errors> {
                     }
 
                     eprintln!("checking out appropriate branch");
+                    std::env::set_current_dir(&loc)?;
                     handle_process(std::process::Command::new("git")
                         .args(["checkout", skelly_branch.as_str()]))?;
                     // let branch = repo.branches(Some(git2::BranchType::Remote))?.find(|branch|{
