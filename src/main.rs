@@ -3,7 +3,7 @@ extern crate serde;
 extern crate toml;
 extern crate git2;
 
-use std::{path::{PathBuf, Path}, io::{Read, Cursor}, collections::{HashMap, HashSet}, ffi::OsStr};
+use std::{path::{PathBuf, Path}, io::Read, collections::{HashMap, HashSet}, ffi::OsStr};
 
 use clap::{Command, Arg};
 use serde::{Serialize, Deserialize};
