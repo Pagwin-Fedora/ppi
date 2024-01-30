@@ -1,7 +1,7 @@
 # Maintainer: Pagwin <spam@pagwin.xyz>
 pkgname='ppi-git'
 _name='ppi'
-pkgver='1.1.2'
+pkgver='1.1.3'
 pkgrel='1'
 pkgdesc="Pagwin's project initializer, a program which makes setting up project scaffolding easy"
 # I could set this to any or all the archictectures but I can't easily test for those so change this if needed
