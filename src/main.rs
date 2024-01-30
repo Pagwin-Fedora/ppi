@@ -44,11 +44,24 @@ fn main() -> Result<(),Errors> {
 
     let config:Config = toml::from_str({
         let mut buf = String::new();
-        let _ = std::fs::File::open(
+        let _ = match std::fs::File::open(
             {let mut n = dirs::config_dir().expect("no config dir so edit the source code to make it work buddy");
                 n.push(clap::crate_name!().to_owned() + "/config.toml");
                 n
-            }).expect("error opening file").read_to_string(&mut buf);
+            }){
+                Ok(mut file)=>file.read_to_string(&mut buf),
+                Err(e)=>{
+                    if std::io::ErrorKind::NotFound == e.kind() {
+                        eprintln!("Config file not found have you created one at \"~/.config/ppi/config.toml\"?");
+                    }
+                    else{
+                        eprintln!("unexpected error has occurred");
+                        eprintln!("{:?}",e);
+                    }
+                    
+                    std::process::exit(1);
+                }
+        };
         buf
     }.as_str()).unwrap_or_default();
 
@@ -97,26 +110,6 @@ fn main() -> Result<(),Errors> {
                     std::env::set_current_dir(&loc)?;
                     handle_process(std::process::Command::new("git")
                         .args(["checkout", skelly_branch.as_str()]))?;
-                    // let branch = repo.branches(Some(git2::BranchType::Remote))?.find(|branch|{
-                    //     if let Ok(branch) = branch{
-                    //         if let Ok(Some(name)) = branch.0.name(){
-                    //             name == format!("origin/{}",skelly_branch)
-                    //         }else{false}
-                    //     }else{false}
-                    // }).ok_or(git2::Error::from_str(format!("no branch with name {}",skelly_branch).as_str()))??;
-
-                    // match repo.set_head(branch.0.into_reference().name().ok_or(git2::Error::from_str("the branch with a name somehow has a reference without a name"))?){
-                    //     Err(e)=>{
-                    //         panic!("{}",e.message());
-                    //     }
-                    //     _=>{}
-                    // }
-
-                    //#[cfg(debug_assertions)]
-                    //{
-                    //    eprintln!("head set");
-                    //    std::io::stdin().read_line(&mut String::new())?;
-                    //}
 
                     repo.remote_delete("origin")?;
 
@@ -125,8 +118,6 @@ fn main() -> Result<(),Errors> {
                         eprintln!("origin deleted");
                         std::io::stdin().read_line(&mut String::new())?;
                     }
-
-
 
                     let mut walk = repo.revwalk()?;
                     walk.set_sorting(git2::Sort::TIME)?;
