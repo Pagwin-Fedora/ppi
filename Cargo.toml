@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 clap = { version = "3.2.22", features = ["derive", "cargo"] }
 dirs = "4.0.0"
-git2 = "0.15.0"
+git2 = "0.18.0"
 serde = { version = "1.0.144", features = ["derive"] }
 toml = "0.5.9"
