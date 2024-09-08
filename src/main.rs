@@ -21,7 +21,7 @@ struct Config{
     subcommands: Subcommands
 }
 
-
+#[allow(dead_code)]
 #[derive(Debug)]
 enum Errors{IoErr(std::io::Error), GitErr(git2::Error), CliErr(CliError), Unknown}
 impl From<std::io::Error> for Errors {
@@ -103,7 +103,6 @@ fn main() -> Result<(),Errors> {
                     #[cfg(debug_assertions)]
                     {
                         eprintln!("repo cloned");
-                        std::io::stdin().read_line(&mut String::new())?;
                     }
 
                     eprintln!("checking out appropriate branch");
@@ -116,7 +115,6 @@ fn main() -> Result<(),Errors> {
                     #[cfg(debug_assertions)]
                     {
                         eprintln!("origin deleted");
-                        std::io::stdin().read_line(&mut String::new())?;
                     }
 
                     let mut walk = repo.revwalk()?;
@@ -128,16 +126,18 @@ fn main() -> Result<(),Errors> {
                     #[cfg(debug_assertions)]
                     {
                         eprintln!("oldest commit found");
-                        std::io::stdin().read_line(&mut String::new())?;
                     }
                     let pwd = repo.path().parent().expect("very bad cloning into the root dir happening");
                     eprintln!("rebasing skeleton's commits down into single commit {:?}", pwd);
                     // I give up git2 documentation/api is just too bad for me to do this with it
                     
-
+                    let commit_arg:&str = &oldest_commit.id()
+                        .as_bytes().iter()
+                        .map(|byte|format!("{:02x}",byte))
+                        .collect::<String>()[0..7];
                     handle_process(std::process::Command::new("git")
                         .current_dir(pwd)
-                        .args(["reset", "--mixed" , oldest_commit.id().as_bytes().iter().map(|byte|format!("{:x}",byte)).collect::<String>().chars().take(7).collect::<String>().as_str()]))?;
+                        .args(["reset", "--mixed" , commit_arg]))?;
 
                     handle_process(std::process::Command::new("git")
                         .current_dir(pwd)
@@ -163,6 +163,7 @@ fn main() -> Result<(),Errors> {
     prog_copy.print_help()?;
     Ok(())
 }
+#[allow(dead_code)]
 #[derive(Debug)]
 enum CliError{Io(std::io::Error), NonZero}
 impl From<std::io::Error> for CliError {
