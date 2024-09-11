@@ -3,3 +3,6 @@
 [subcommands.scripts]
 rs = "cargo-quick"
 js = "npm-quick"
+
+[patching]
+prefix = "/home/pagwin/.local/share/patches/"

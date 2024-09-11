@@ -1,0 +1,10 @@
+--- testing-testing.cabal.old	2024-09-11 14:05:37.254611228 -0400
++++ testing-testing.cabal	2024-09-11 14:07:06.045206895 -0400
+@@ -21,6 +21,7 @@
+     main-is:          Main.hs
+     -- other-modules:
+     -- other-extensions:
++    default-extensions: ApplicativeDo DataKinds NamedFieldPuns DerivingVia LambdaCase TypeApplications DeriveGeneric OverloadedStrings OverloadedLists
+     build-depends:    base ^>=4.17.2.1
+     hs-source-dirs:   app
+     default-language: Haskell2010

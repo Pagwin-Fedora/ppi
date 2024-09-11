@@ -12,13 +12,20 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize,Default)]
 struct Subcommands{
     //a hashmap of subcommands which can be created via cloning a skeleton repository
-    skeletons:HashMap<String, (String, String)>,
+    skeletons:Option<HashMap<String, (String, String)>>,
     // a hashmap of subcommands which can be created via running an external executable
-    scripts: HashMap<String,PathBuf>
+    scripts: Option<HashMap<String,PathBuf>>
+}
+#[derive(Serialize, Deserialize,Default)]
+struct Patching{
+    // path to prefix to finding a patch (default is relative to pwd)
+    prefix: Option<PathBuf>,
+    cmd_patches: Option<HashMap<String, PathBuf>>
 }
 #[derive(Serialize, Deserialize,Default)]
 struct Config{
-    subcommands: Subcommands
+    subcommands: Subcommands,
+    patching: Patching
 }
 
 #[allow(dead_code)]
@@ -64,8 +71,10 @@ fn main() -> Result<(),Errors> {
         };
         buf
     }.as_str()).unwrap_or_default();
+    let Config {subcommands:Subcommands { skeletons, scripts }, patching:_patching}  = config;
 
-    let Config {subcommands:Subcommands { skeletons, scripts }}  = config;
+    let skeletons = skeletons.unwrap_or_default();
+    let scripts = scripts.unwrap_or_default();
 
     // Making sure the skeletons and scripts don't have overlap that will cause issue later
     {
